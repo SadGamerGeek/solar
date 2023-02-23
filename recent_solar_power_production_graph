@@ -1,0 +1,74 @@
+type: custom:config-template-card
+entities:
+  - sensor.solar_day_hours
+  - sensor.solar_start_hour
+variables:
+  span: states['sensor.solar_day_hours'].state
+  offset: states['sensor.solar_start_hour'].state
+card:
+  type: custom:apexcharts-card
+  hours_12: false
+  apex_config:
+    yaxis:
+      show: true
+      title:
+        text: kW
+    dataLabels:
+      enabled: false
+    tooltip:
+      enabled: true
+      shared: true
+  span:
+    start: day
+    offset: ${offset}
+  graph_span: ${span}
+  header:
+    show: true
+    title: recent solar power production
+    show_states: false
+    colorize_states: true
+  now:
+    show: true
+    label: now
+  series:
+    - entity: sensor.solis_ac_output_total_power
+      name: today
+      extend_to: false
+      stroke_width: 2.5
+    - entity: sensor.solis_ac_output_total_power
+      offset: '-1d'
+      name: yesterday
+    - entity: sensor.solis_ac_output_total_power
+      offset: '-2d'
+      name: 2 days ago
+  all_series_config:
+    show:
+      legend_value: false
+    transform: return x / 1000;
+    unit: kW
+    group_by:
+      func: avg
+      duration: 25min
+    stroke_width: 1
+
+
+
+
+
+# above is the card config for the graph. It has prerequisites of these two custom cards (recommned installing from HACS):
+# custom:config-template-card
+# custom:apexcharts-card
+#
+# ... and these template sensors :
+
+      solar_start_hour:
+        value_template: >
+            {{ "+" ~ as_timestamp(states.sun.sun.attributes.next_rising) | timestamp_custom('%H') ~ "hour" }}
+
+      solar_day_hours:
+        value_template: >
+            {% set sun_hour_rise = as_timestamp(states.sun.sun.attributes.next_rising)  | timestamp_custom(' %H') %}
+            {% set sun_hour_set  = as_timestamp(states.sun.sun.attributes.next_setting) | timestamp_custom(' %H') %}
+
+            {% set sun_day_length =  sun_hour_set|int - sun_hour_rise|int +1  %}
+            {{ sun_day_length ~ "hours" }}
